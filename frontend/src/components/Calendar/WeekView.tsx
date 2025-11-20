@@ -1,0 +1,133 @@
+import { CalendarEvent } from '@/types';
+import { getWeekDays, format, isSameDay, isToday, getHours, getMinutes } from '@/lib/date';
+import { EventChip } from '../EventChip';
+import { cn } from '@/lib/utils';
+
+interface WeekViewProps {
+  currentDate: Date;
+  events: CalendarEvent[];
+  onEventClick: (event: CalendarEvent) => void;
+  onTimeSlotClick?: (date: Date, hour: number) => void;
+}
+
+export const WeekView = ({ currentDate, events, onEventClick, onTimeSlotClick }: WeekViewProps) => {
+  const days = getWeekDays(currentDate);
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const visibleHours = hours.slice(6, 22); // 6 AM to 10 PM
+
+  const getEventsForDayAndHour = (day: Date, hour: number) => {
+    return events.filter((event) => {
+      if (event.allDay) return false;
+      const eventDay = new Date(event.start);
+      const eventHour = getHours(event.start);
+      return isSameDay(eventDay, day) && eventHour === hour;
+    });
+  };
+
+  const getAllDayEvents = (day: Date) => {
+    return events.filter((event) => {
+      if (!event.allDay) return false;
+      const eventStart = new Date(event.start);
+      return isSameDay(eventStart, day);
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-auto">
+      {/* Week header */}
+      <div className="sticky top-0 bg-background z-10 border-b border-calendar-border">
+        <div className="grid grid-cols-8">
+          <div className="p-2 text-xs font-medium text-muted-foreground border-r border-calendar-border">
+            GMT-5
+          </div>
+          {days.map((day) => {
+            const isTodayDate = isToday(day);
+            return (
+              <div
+                key={day.toISOString()}
+                className={cn(
+                  'p-2 text-center border-r border-calendar-border last:border-r-0',
+                  isTodayDate && 'bg-calendar-today'
+                )}
+              >
+                <div className="text-xs text-muted-foreground">
+                  {format(day, 'EEE')}
+                </div>
+                <div
+                  className={cn(
+                    'text-2xl font-normal',
+                    isTodayDate && 'text-primary font-bold'
+                  )}
+                >
+                  <span className={cn(
+                    isTodayDate && 'bg-primary text-primary-foreground rounded-full h-10 w-10 inline-flex items-center justify-center'
+                  )}>
+                    {format(day, 'd')}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* All-day events */}
+        <div className="grid grid-cols-8 border-t border-calendar-border">
+          <div className="p-2 text-xs text-muted-foreground border-r border-calendar-border">
+            All day
+          </div>
+          {days.map((day) => {
+            const allDayEvents = getAllDayEvents(day);
+            return (
+              <div
+                key={`allday-${day.toISOString()}`}
+                className="p-1 border-r border-calendar-border last:border-r-0 min-h-[60px]"
+              >
+                <div className="space-y-1">
+                  {allDayEvents.map((event) => (
+                    <EventChip
+                      key={event.id}
+                      event={event}
+                      onClick={() => onEventClick(event)}
+                      showTime={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Time grid */}
+      <div className="flex-1">
+        {visibleHours.map((hour) => (
+          <div key={hour} className="grid grid-cols-8 border-b border-calendar-border h-16">
+            <div className="p-2 text-xs text-muted-foreground text-right border-r border-calendar-border">
+              {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+            </div>
+            {days.map((day) => {
+              const hourEvents = getEventsForDayAndHour(day, hour);
+              return (
+                <div
+                  key={`${day.toISOString()}-${hour}`}
+                  className="border-r border-calendar-border last:border-r-0 p-1 cursor-pointer hover:bg-calendar-hover transition-colors relative"
+                  onClick={() => onTimeSlotClick?.(day, hour)}
+                >
+                  <div className="space-y-1">
+                    {hourEvents.map((event) => (
+                      <EventChip
+                        key={event.id}
+                        event={event}
+                        onClick={() => onEventClick(event)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,342 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { TopBar } from "@/components/TopBar";
+import { Sidebar } from "@/components/Sidebar";
+import { ViewSelector } from "@/components/ViewSelector";
+import { MonthView } from "@/components/Calendar/MonthView";
+import { WeekView } from "@/components/Calendar/WeekView";
+import { DayView } from "@/components/Calendar/DayView";
+import { AgendaView } from "@/components/Calendar/AgendaView";
+import { EventModal } from "@/components/EventModal";
+import { eventAPI, calendarAPI } from "@/api";
+import { CalendarEvent, Calendar, ViewType, CreateEventInput } from "@/types";
+import {
+  format,
+  addMonths,
+  addWeeks,
+  addDays,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  setHours,
+} from "@/lib/date";
+import { useToast } from "@/hooks/use-toast";
+
+export const CalendarPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const view = (searchParams.get("view") as ViewType) || "month";
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [calendars, setCalendars] = useState<Calendar[]>([]);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<
+    CalendarEvent | undefined
+  >();
+  const [modalInitialDate, setModalInitialDate] = useState<Date | undefined>();
+  const [modalInitialHour, setModalInitialHour] = useState<
+    number | undefined
+  >();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load calendars
+  useEffect(() => {
+    const loadCalendars = async () => {
+      try {
+        const data = await calendarAPI.getCalendars();
+        setCalendars(data);
+      } catch (error) {
+        console.error("Error loading calendars:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load calendars",
+          variant: "destructive",
+        });
+      }
+    };
+    loadCalendars();
+  }, [toast]);
+
+  // Load events
+  useEffect(() => {
+    const loadEvents = async () => {
+      setIsLoading(true);
+      try {
+        const start =
+          view === "month"
+            ? startOfWeek(startOfMonth(currentDate))
+            : view === "week"
+            ? startOfWeek(currentDate)
+            : currentDate;
+
+        const end =
+          view === "month"
+            ? endOfWeek(endOfMonth(currentDate))
+            : view === "week"
+            ? endOfWeek(currentDate)
+            : addDays(currentDate, 30);
+
+        const data = await eventAPI.getEvents(start, end);
+
+        // Filter by visible calendars
+        const visibleCalendarIds = calendars
+          .filter((cal) => cal.visible)
+          .map((cal) => cal.id);
+
+        setEvents(
+          data.filter((event) => visibleCalendarIds.includes(event.calendarId))
+        );
+      } catch (error) {
+        console.error("Error loading events:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load events",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (calendars.length > 0) {
+      loadEvents();
+    }
+  }, [currentDate, view, calendars, toast]);
+
+  const handleViewChange = (newView: ViewType) => {
+    setSearchParams({ view: newView });
+  };
+
+  const handlePrevious = () => {
+    switch (view) {
+      case "month":
+        setCurrentDate(addMonths(currentDate, -1));
+        break;
+      case "week":
+        setCurrentDate(addWeeks(currentDate, -1));
+        break;
+      case "day":
+        setCurrentDate(addDays(currentDate, -1));
+        break;
+    }
+  };
+
+  const handleNext = () => {
+    switch (view) {
+      case "month":
+        setCurrentDate(addMonths(currentDate, 1));
+        break;
+      case "week":
+        setCurrentDate(addWeeks(currentDate, 1));
+        break;
+      case "day":
+        setCurrentDate(addDays(currentDate, 1));
+        break;
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setCurrentDate(date);
+    if (view === "month") {
+      handleViewChange("day");
+    }
+  };
+
+  const handleCalendarToggle = async (id: string) => {
+    const calendar = calendars.find((cal) => cal.id === id);
+    if (!calendar) return;
+
+    try {
+      await calendarAPI.updateCalendar(id, { visible: !calendar.visible });
+      setCalendars(
+        calendars.map((cal) =>
+          cal.id === id ? { ...cal, visible: !cal.visible } : cal
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling calendar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update calendar",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateEvent = () => {
+    setSelectedEvent(undefined);
+    setModalInitialDate(undefined);
+    setModalInitialHour(undefined);
+    setIsEventModalOpen(true);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setIsEventModalOpen(true);
+  };
+
+  const handleDayClick = (date: Date) => {
+    setModalInitialDate(date);
+    setModalInitialHour(undefined);
+    setIsEventModalOpen(true);
+  };
+
+  const handleTimeSlotClick = (date: Date, hour: number) => {
+    setModalInitialDate(date);
+    setModalInitialHour(hour);
+    setIsEventModalOpen(true);
+  };
+
+  const handleSaveEvent = async (input: CreateEventInput) => {
+    try {
+      if (selectedEvent) {
+        await eventAPI.updateEvent({ ...input, id: selectedEvent.id });
+        toast({ title: "Event updated successfully" });
+      } else {
+        await eventAPI.createEvent(input);
+        toast({ title: "Event created successfully" });
+      }
+
+      // Reload events
+      const start = startOfWeek(startOfMonth(currentDate));
+      const end = endOfWeek(endOfMonth(currentDate));
+      const data = await eventAPI.getEvents(start, end);
+      const visibleCalendarIds = calendars
+        .filter((cal) => cal.visible)
+        .map((cal) => cal.id);
+      setEvents(
+        data.filter((event) => visibleCalendarIds.includes(event.calendarId))
+      );
+    } catch (error) {
+      console.error("Error saving event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save event",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await eventAPI.deleteEvent(id);
+      setEvents(events.filter((event) => event.id !== id));
+      toast({ title: "Event deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete event",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getTitle = () => {
+    switch (view) {
+      case "month":
+        return format(currentDate, "MMMM yyyy");
+      case "week":
+        return format(currentDate, "MMMM yyyy");
+      case "day":
+        return format(currentDate, "MMMM d, yyyy");
+      case "agenda":
+        return "Agenda";
+      default:
+        return "";
+    }
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      <TopBar
+        title={getTitle()}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        onToday={handleToday}
+        onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          calendars={calendars}
+          selectedDate={currentDate}
+          onDateSelect={handleDateSelect}
+          onCalendarToggle={handleCalendarToggle}
+          onCreateEvent={handleCreateEvent}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-calendar-border flex items-center justify-between">
+            <ViewSelector currentView={view} onViewChange={handleViewChange} />
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-muted-foreground">Loading events...</div>
+              </div>
+            ) : (
+              <>
+                {view === "month" && (
+                  <MonthView
+                    currentDate={currentDate}
+                    events={events}
+                    onEventClick={handleEventClick}
+                    onDayClick={handleDayClick}
+                  />
+                )}
+                {view === "week" && (
+                  <WeekView
+                    currentDate={currentDate}
+                    events={events}
+                    onEventClick={handleEventClick}
+                    onTimeSlotClick={handleTimeSlotClick}
+                  />
+                )}
+                {view === "day" && (
+                  <DayView
+                    currentDate={currentDate}
+                    events={events}
+                    onEventClick={handleEventClick}
+                    onTimeSlotClick={(hour) =>
+                      handleTimeSlotClick(currentDate, hour)
+                    }
+                  />
+                )}
+                {view === "agenda" && (
+                  <AgendaView
+                    currentDate={currentDate}
+                    events={events}
+                    onEventClick={handleEventClick}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+        event={selectedEvent}
+        initialDate={modalInitialDate}
+        initialHour={modalInitialHour}
+        calendars={calendars}
+      />
+    </div>
+  );
+};
