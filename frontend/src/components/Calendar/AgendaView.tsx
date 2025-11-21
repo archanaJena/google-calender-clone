@@ -1,5 +1,5 @@
 import { CalendarEvent } from "@/types";
-import { format, startOfDay, endOfDay, addDays, differenceInDays } from "@/lib/date";
+import { format, isSameDay, startOfDay, addDays, differenceInDays } from "@/lib/date";
 import { EventChip } from "../EventChip";
 import { cn } from "@/lib/utils";
 
@@ -9,14 +9,6 @@ interface AgendaViewProps {
   onEventClick: (event: CalendarEvent) => void;
   highlightedEventIds?: string[];
 }
-
-const occursOnDay = (event: CalendarEvent, day: Date) => {
-  const dayStart = startOfDay(day);
-  const dayEnd = endOfDay(day);
-  const eventStart = new Date(event.start);
-  const eventEnd = new Date(event.end);
-  return eventStart <= dayEnd && eventEnd >= dayStart;
-};
 
 export const AgendaView = ({
   currentDate,
@@ -37,7 +29,10 @@ export const AgendaView = ({
 
   const getEventsForDay = (day: Date) => {
     return events
-      .filter((event) => occursOnDay(event, day))
+      .filter((event) => {
+        const eventStart = new Date(event.start);
+        return isSameDay(eventStart, day);
+      })
       .sort((a, b) => {
         // Single-day events first, then multi-day events
         const aIsMultiDay = isMultiDayEvent(a);
@@ -57,8 +52,12 @@ export const AgendaView = ({
           if (dayEvents.length === 0) return [];
 
           // Separate single-day and multi-day events
-          const singleDayEvents = dayEvents.filter((event) => !isMultiDayEvent(event));
-          const multiDayEvents = dayEvents.filter((event) => isMultiDayEvent(event));
+          const singleDayEvents = dayEvents.filter(
+            (event) => !isMultiDayEvent(event)
+          );
+          const multiDayEvents = dayEvents.filter((event) =>
+            isMultiDayEvent(event)
+          );
 
           const result = [];
 
@@ -99,7 +98,6 @@ export const AgendaView = ({
                           onClick={() => onEventClick(event)}
                           showTime={false}
                           className="mb-1"
-                          highlighted={highlightedEventIds?.includes(event.id)}
                           highlighted={highlightedEventIds?.includes(event.id)}
                         />
                         {event.location && (
@@ -161,8 +159,7 @@ export const AgendaView = ({
                         onClick={() => onEventClick(event)}
                         showTime={false}
                         className="mb-1"
-                          highlighted={highlightedEventIds?.includes(event.id)}
-                          highlighted={highlightedEventIds?.includes(event.id)}
+                        highlighted={highlightedEventIds?.includes(event.id)}
                       />
                       {event.location && (
                         <div className="text-xs text-muted-foreground mt-1">
