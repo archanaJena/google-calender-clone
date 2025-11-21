@@ -223,10 +223,38 @@ export const CalendarPage = () => {
         toast({ title: "Event created successfully" });
       }
 
-      // Reload events
-      const start = startOfWeek(startOfMonth(currentDate));
-      const end = endOfWeek(endOfMonth(currentDate));
-      const data = await eventAPI.getEvents(start, end);
+      // Reload events based on current view
+      const reloadStart = (() => {
+        switch (view) {
+          case "month":
+            return startOfWeek(startOfMonth(currentDate));
+          case "week":
+            return startOfWeek(currentDate);
+          case "day":
+            return startOfDay(currentDate);
+          case "agenda":
+            return addDays(startOfDay(currentDate), 1);
+          default:
+            return currentDate;
+        }
+      })();
+
+      const reloadEnd = (() => {
+        switch (view) {
+          case "month":
+            return endOfWeek(endOfMonth(currentDate));
+          case "week":
+            return endOfWeek(currentDate);
+          case "day":
+            return endOfDay(currentDate);
+          case "agenda":
+            return addDays(addDays(startOfDay(currentDate), 1), 30);
+          default:
+            return addDays(currentDate, 30);
+        }
+      })();
+
+      const data = await eventAPI.getEvents(reloadStart, reloadEnd);
       const visibleCalendarIds = calendars
         .filter((cal) => cal.visible)
         .map((cal) => cal.id);
@@ -240,6 +268,7 @@ export const CalendarPage = () => {
         description: "Failed to save event",
         variant: "destructive",
       });
+      throw error; // Re-throw so modal can handle it
     }
   };
 

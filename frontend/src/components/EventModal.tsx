@@ -68,6 +68,7 @@ export const EventModal = ({
   const [location, setLocation] = useState("");
   const [calendarId, setCalendarId] = useState("");
   const [color, setColor] = useState<CalendarColor>("blue");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (event) {
@@ -110,28 +111,46 @@ export const EventModal = ({
     }
   }, [event, initialDate, initialHour, calendars]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const start = allDay
-      ? new Date(startDate)
-      : new Date(`${startDate}T${startTime}`);
+    if (isSubmitting) {
+      return; // Prevent double submission
+    }
 
-    const end = allDay ? new Date(endDate) : new Date(`${endDate}T${endTime}`);
+    setIsSubmitting(true);
 
-    const input: CreateEventInput = {
-      title,
-      description: description || undefined,
-      start,
-      end,
-      allDay,
-      calendarId,
-      color,
-      location: location || undefined,
-    };
+    try {
+      let start: Date;
+      let end: Date;
 
-    onSave(input);
-    handleClose();
+      if (allDay) {
+        // For all-day events, start at 00:00:00 and end at 23:59:59 of the end date
+        start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        start = new Date(`${startDate}T${startTime}`);
+        end = new Date(`${endDate}T${endTime}`);
+      }
+
+      const input: CreateEventInput = {
+        title,
+        description: description || undefined,
+        start,
+        end,
+        allDay,
+        calendarId,
+        color,
+        location: location || undefined,
+      };
+
+      await onSave(input);
+      handleClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -295,10 +314,10 @@ export const EventModal = ({
                 Delete
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary-hover">
+            <Button type="submit" className="bg-primary hover:bg-primary-hover" disabled={isSubmitting}>
               {event ? "Save" : "Create"}
             </Button>
           </DialogFooter>

@@ -104,12 +104,29 @@ router.post('/', async (req, res, next) => {
       });
     }
 
+    const startDate = parseDate(start, 'start');
+    const endDate = parseDate(end, 'end');
+
+    // Check for duplicate event (same user, title, start, end, and calendarId)
+    const existingEvent = await Event.findOne({
+      user: req.user._id,
+      title,
+      start: startDate,
+      end: endDate,
+      calendarId,
+    });
+
+    if (existingEvent) {
+      // Return existing event instead of creating duplicate
+      return res.status(200).json({ event: existingEvent });
+    }
+
     const event = await Event.create({
       user: req.user._id,
       title,
       description,
-      start: parseDate(start, 'start'),
-      end: parseDate(end, 'end'),
+      start: startDate,
+      end: endDate,
       allDay,
       calendarId,
       color,
