@@ -92,10 +92,32 @@ export const YearView = ({
     });
   };
 
-  const getPrimaryEventColor = (dayEvents: CalendarEvent[]): string | null => {
-    if (dayEvents.length === 0) return null;
-    // Get the first event's color
-    return dayEvents[0].color;
+  const getEventDots = (dayEvents: CalendarEvent[]) => {
+    if (dayEvents.length === 0) return [];
+    // Return all events with their colors
+    return dayEvents.map((event) => ({
+      color: event.color,
+      colorClass: colorDotClasses[event.color] || colorDotClasses.blue,
+    }));
+  };
+
+  const getDotPosition = (index: number, total: number) => {
+    if (total === 1) {
+      return { top: 'auto', bottom: '2px', left: '50%', transform: 'translateX(-50%)' };
+    }
+    
+    // Arrange dots in a circle around the date
+    const angle = (index * 360) / total;
+    const radius = 8; // Distance from center
+    const radian = (angle * Math.PI) / 180;
+    const x = Math.cos(radian) * radius;
+    const y = Math.sin(radian) * radius;
+    
+    return {
+      top: `${50 + y}%`,
+      left: `${50 + x}%`,
+      transform: 'translate(-50%, -50%)',
+    };
   };
 
   return (
@@ -146,14 +168,13 @@ export const YearView = ({
                     const dayEvents = getEventsForDay(day, monthEvents);
                     const isCurrentMonthDay = isSameMonth(day, monthDate);
                     const isTodayDate = isToday(day);
-                    const eventColor = getPrimaryEventColor(dayEvents);
-                    const colorClass = eventColor ? colorDotClasses[eventColor] : null;
+                    const eventDots = getEventDots(dayEvents);
 
                     return (
                       <div
                         key={dayIndex}
                         className={cn(
-                          "min-h-[32px] p-0.5 border border-transparent rounded flex flex-col items-center justify-start",
+                          "min-h-[32px] p-0.5 border border-transparent rounded relative flex items-center justify-center",
                           !isCurrentMonthDay && "opacity-30",
                           isTodayDate && isCurrentMonthDay && "bg-primary/10"
                         )}
@@ -161,28 +182,37 @@ export const YearView = ({
                       >
                         <div
                           className={cn(
-                            "text-xs w-full text-center",
+                            "text-xs text-center z-10",
                             !isCurrentMonthDay && "text-muted-foreground",
                             isTodayDate && isCurrentMonthDay && "font-bold text-primary"
                           )}
                         >
                           {format(day, "d")}
                         </div>
-                        {dayEvents.length > 0 && colorClass && (
+                        {eventDots.length > 0 && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div
-                                className={cn(
-                                  "w-1.5 h-1.5 rounded-full mt-0.5",
-                                  colorClass
-                                )}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (dayEvents.length > 0) {
-                                    onEventClick(dayEvents[0]);
-                                  }
-                                }}
-                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                {eventDots.map((dot, dotIndex) => {
+                                  const position = getDotPosition(dotIndex, eventDots.length);
+                                  return (
+                                    <div
+                                      key={dotIndex}
+                                      className={cn(
+                                        "w-1.5 h-1.5 rounded-full absolute",
+                                        dot.colorClass
+                                      )}
+                                      style={position}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (dayEvents[dotIndex]) {
+                                          onEventClick(dayEvents[dotIndex]);
+                                        }
+                                      }}
+                                    />
+                                  );
+                                })}
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent
                               side="top"
