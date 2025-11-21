@@ -103,11 +103,12 @@ export const YearView = ({
 
   const getDotPosition = (index: number, total: number) => {
     // Define positions around the date: top, right, bottom, left, then diagonals
+    // Left and right are closer to match top and bottom distance
     const positions = [
       { top: '0px', left: '50%', transform: 'translateX(-50%)' }, // top
-      { top: '50%', right: '0px', transform: 'translateY(-50%)' }, // right
+      { top: '50%', right: '2px', transform: 'translateY(-50%)' }, // right (closer)
       { bottom: '0px', left: '50%', transform: 'translateX(-50%)' }, // bottom
-      { top: '50%', left: '0px', transform: 'translateY(-50%)' }, // left
+      { top: '50%', left: '2px', transform: 'translateY(-50%)' }, // left (closer)
       { top: '2px', right: '2px', transform: 'none' }, // top-right
       { bottom: '2px', right: '2px', transform: 'none' }, // bottom-right
       { bottom: '2px', left: '2px', transform: 'none' }, // bottom-left
@@ -214,60 +215,65 @@ export const YearView = ({
                           {format(day, "d")}
                         </div>
                         {eventDots.length > 0 && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="absolute inset-0 pointer-events-none">
-                                {eventDots.map((dot, dotIndex) => {
-                                  const position = getDotPosition(dotIndex, eventDots.length);
-                                  return (
+                          <div className="absolute inset-0 pointer-events-none">
+                            {eventDots.map((dot, dotIndex) => {
+                              const position = getDotPosition(dotIndex, eventDots.length);
+                              const event = dayEvents[dotIndex];
+                              
+                              return (
+                                <Tooltip key={dotIndex}>
+                                  <TooltipTrigger asChild>
                                     <div
-                                      key={dotIndex}
                                       className={cn(
-                                        "w-1.5 h-1.5 rounded-full absolute pointer-events-auto",
+                                        "w-1.5 h-1.5 rounded-full absolute pointer-events-auto cursor-pointer",
                                         dot.colorClass
                                       )}
                                       style={position}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (dayEvents[dotIndex]) {
-                                          onEventClick(dayEvents[dotIndex]);
+                                        if (event) {
+                                          onEventClick(event);
                                         }
                                       }}
                                     />
-                                  );
-                                })}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="top"
-                              className="max-w-xs p-3"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="space-y-2">
-                                <div className="text-xs font-semibold text-foreground">
-                                  {format(day, "EEEE, MMMM d, yyyy")}
-                                </div>
-                                <div className="space-y-1">
-                                  {dayEvents.map((event) => (
-                                    <div
-                                      key={event.id}
-                                      className="text-xs cursor-pointer hover:underline"
-                                      onClick={() => {
-                                        onEventClick(event);
-                                      }}
-                                    >
-                                      <span className="font-medium">{event.title}</span>
-                                      {event.location && (
-                                        <span className="text-muted-foreground ml-2">
-                                          • {event.location}
-                                        </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="top"
+                                    className="max-w-xs p-3"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <div className="space-y-2">
+                                      <div className="text-xs font-semibold text-foreground">
+                                        {format(day, "EEEE, MMMM d, yyyy")}
+                                      </div>
+                                      {event && (
+                                        <div className="space-y-1">
+                                          <div
+                                            className="text-xs cursor-pointer hover:underline"
+                                            onClick={() => {
+                                              onEventClick(event);
+                                            }}
+                                          >
+                                            <span className="font-medium">{event.title}</span>
+                                            {event.location && (
+                                              <span className="text-muted-foreground ml-2">
+                                                📍 {event.location}
+                                              </span>
+                                            )}
+                                            {event.description && (
+                                              <div className="text-muted-foreground mt-1 text-xs">
+                                                {event.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
                                       )}
                                     </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     );
