@@ -7,6 +7,7 @@ import { MonthView } from "@/components/Calendar/MonthView";
 import { WeekView } from "@/components/Calendar/WeekView";
 import { DayView } from "@/components/Calendar/DayView";
 import { AgendaView } from "@/components/Calendar/AgendaView";
+import { YearView } from "@/components/Calendar/YearView";
 import { EventModal } from "@/components/EventModal";
 import { eventAPI, calendarAPI } from "@/api";
 import { CalendarEvent, Calendar, ViewType, CreateEventInput } from "@/types";
@@ -15,12 +16,15 @@ import {
   addMonths,
   addWeeks,
   addDays,
+  addYears,
   startOfMonth,
   endOfMonth,
   startOfWeek,
   endOfWeek,
   startOfDay,
   endOfDay,
+  startOfYear,
+  endOfYear,
   setHours,
 } from "@/lib/date";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +74,8 @@ export const CalendarPage = () => {
       try {
         const start = (() => {
           switch (view) {
+            case "year":
+              return startOfYear(currentDate);
             case "month":
               return startOfWeek(startOfMonth(currentDate));
             case "week":
@@ -85,6 +91,8 @@ export const CalendarPage = () => {
 
         const end = (() => {
           switch (view) {
+            case "year":
+              return endOfYear(currentDate);
             case "month":
               return endOfWeek(endOfMonth(currentDate));
             case "week":
@@ -131,6 +139,9 @@ export const CalendarPage = () => {
 
   const handlePrevious = () => {
     switch (view) {
+      case "year":
+        setCurrentDate(addYears(currentDate, -1));
+        break;
       case "month":
         setCurrentDate(addMonths(currentDate, -1));
         break;
@@ -145,6 +156,9 @@ export const CalendarPage = () => {
 
   const handleNext = () => {
     switch (view) {
+      case "year":
+        setCurrentDate(addYears(currentDate, 1));
+        break;
       case "month":
         setCurrentDate(addMonths(currentDate, 1));
         break;
@@ -226,6 +240,8 @@ export const CalendarPage = () => {
       // Reload events based on current view
       const reloadStart = (() => {
         switch (view) {
+          case "year":
+            return startOfYear(currentDate);
           case "month":
             return startOfWeek(startOfMonth(currentDate));
           case "week":
@@ -241,6 +257,8 @@ export const CalendarPage = () => {
 
       const reloadEnd = (() => {
         switch (view) {
+          case "year":
+            return endOfYear(currentDate);
           case "month":
             return endOfWeek(endOfMonth(currentDate));
           case "week":
@@ -289,6 +307,8 @@ export const CalendarPage = () => {
 
   const getTitle = () => {
     switch (view) {
+      case "year":
+        return format(currentDate, "yyyy");
       case "month":
         return format(currentDate, "MMMM yyyy");
       case "week":
@@ -359,6 +379,17 @@ export const CalendarPage = () => {
                     onTimeSlotClick={(hour) =>
                       handleTimeSlotClick(currentDate, hour)
                     }
+                  />
+                )}
+                {view === "year" && (
+                  <YearView
+                    currentDate={currentDate}
+                    events={events}
+                    onEventClick={handleEventClick}
+                    onMonthClick={(date) => {
+                      setCurrentDate(date);
+                      handleViewChange("month");
+                    }}
                   />
                 )}
                 {view === "agenda" && (

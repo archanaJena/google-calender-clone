@@ -1,6 +1,6 @@
 export type CalendarColor = 'blue' | 'red' | 'green' | 'orange' | 'purple' | 'cyan' | 'gray';
 
-export type ViewType = 'month' | 'week' | 'day' | 'agenda';
+export type ViewType = 'year' | 'month' | 'week' | 'day' | 'agenda';
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'none';
 

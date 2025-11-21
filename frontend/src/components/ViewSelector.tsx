@@ -11,6 +11,7 @@ const views: { value: ViewType; label: string }[] = [
   { value: 'day', label: 'Day' },
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
+  { value: 'year', label: 'Year' },
   { value: 'agenda', label: 'Agenda' },
 ];
 
