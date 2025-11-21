@@ -112,7 +112,11 @@ export const TopBar = ({
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.avatar} alt={user?.name} />
+                <AvatarImage
+                  src={user?.avatar}
+                  alt={user?.name}
+                  referrerPolicy="no-referrer"
+                />
                 <AvatarFallback>
                   {user?.name ? getUserInitials(user.name) : <User className="h-4 w-4" />}
                 </AvatarFallback>
