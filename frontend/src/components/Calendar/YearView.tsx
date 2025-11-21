@@ -102,22 +102,46 @@ export const YearView = ({
   };
 
   const getDotPosition = (index: number, total: number) => {
+    // Define positions around the date: top, right, bottom, left, then diagonals
+    const positions = [
+      { top: '0px', left: '50%', transform: 'translateX(-50%)' }, // top
+      { top: '50%', right: '0px', transform: 'translateY(-50%)' }, // right
+      { bottom: '0px', left: '50%', transform: 'translateX(-50%)' }, // bottom
+      { top: '50%', left: '0px', transform: 'translateY(-50%)' }, // left
+      { top: '2px', right: '2px', transform: 'none' }, // top-right
+      { bottom: '2px', right: '2px', transform: 'none' }, // bottom-right
+      { bottom: '2px', left: '2px', transform: 'none' }, // bottom-left
+      { top: '2px', left: '2px', transform: 'none' }, // top-left
+    ];
+
+    // For 1 dot, place at bottom
     if (total === 1) {
-      return { top: 'auto', bottom: '2px', left: '50%', transform: 'translateX(-50%)' };
+      return positions[2]; // bottom
     }
-    
-    // Arrange dots in a circle around the date
-    const angle = (index * 360) / total;
-    const radius = 8; // Distance from center
-    const radian = (angle * Math.PI) / 180;
-    const x = Math.cos(radian) * radius;
-    const y = Math.sin(radian) * radius;
-    
-    return {
-      top: `${50 + y}%`,
-      left: `${50 + x}%`,
-      transform: 'translate(-50%, -50%)',
-    };
+
+    // For 2 dots, place at left and right
+    if (total === 2) {
+      return index === 0 ? positions[3] : positions[1]; // left, right
+    }
+
+    // For 3 dots, place at top, left, right
+    if (total === 3) {
+      if (index === 0) return positions[0]; // top
+      if (index === 1) return positions[3]; // left
+      return positions[1]; // right
+    }
+
+    // For 4 dots, place at top, right, bottom, left
+    if (total === 4) {
+      return positions[index];
+    }
+
+    // For 5+ dots, use cardinal directions first, then diagonals
+    if (index < 4) {
+      return positions[index];
+    }
+    // Use diagonal positions for remaining dots
+    return positions[4 + ((index - 4) % 4)];
   };
 
   return (
@@ -182,7 +206,7 @@ export const YearView = ({
                       >
                         <div
                           className={cn(
-                            "text-xs text-center z-10",
+                            "text-xs text-center relative z-10",
                             !isCurrentMonthDay && "text-muted-foreground",
                             isTodayDate && isCurrentMonthDay && "font-bold text-primary"
                           )}
@@ -192,14 +216,14 @@ export const YearView = ({
                         {eventDots.length > 0 && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="absolute inset-0 pointer-events-none">
                                 {eventDots.map((dot, dotIndex) => {
                                   const position = getDotPosition(dotIndex, eventDots.length);
                                   return (
                                     <div
                                       key={dotIndex}
                                       className={cn(
-                                        "w-1.5 h-1.5 rounded-full absolute",
+                                        "w-1.5 h-1.5 rounded-full absolute pointer-events-auto",
                                         dot.colorClass
                                       )}
                                       style={position}
