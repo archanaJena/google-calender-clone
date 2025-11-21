@@ -19,6 +19,8 @@ import {
   endOfMonth,
   startOfWeek,
   endOfWeek,
+  startOfDay,
+  endOfDay,
   setHours,
 } from "@/lib/date";
 import { useToast } from "@/hooks/use-toast";
@@ -66,19 +68,35 @@ export const CalendarPage = () => {
     const loadEvents = async () => {
       setIsLoading(true);
       try {
-        const start =
-          view === "month"
-            ? startOfWeek(startOfMonth(currentDate))
-            : view === "week"
-            ? startOfWeek(currentDate)
-            : currentDate;
+        const start = (() => {
+          switch (view) {
+            case "month":
+              return startOfWeek(startOfMonth(currentDate));
+            case "week":
+              return startOfWeek(currentDate);
+            case "day":
+              return startOfDay(currentDate);
+            case "agenda":
+              return addDays(startOfDay(currentDate), 1);
+            default:
+              return currentDate;
+          }
+        })();
 
-        const end =
-          view === "month"
-            ? endOfWeek(endOfMonth(currentDate))
-            : view === "week"
-            ? endOfWeek(currentDate)
-            : addDays(currentDate, 30);
+        const end = (() => {
+          switch (view) {
+            case "month":
+              return endOfWeek(endOfMonth(currentDate));
+            case "week":
+              return endOfWeek(currentDate);
+            case "day":
+              return endOfDay(currentDate);
+            case "agenda":
+              return addDays(addDays(startOfDay(currentDate), 1), 30);
+            default:
+              return addDays(currentDate, 30);
+          }
+        })();
 
         const data = await eventAPI.getEvents(start, end);
 
