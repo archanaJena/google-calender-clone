@@ -14,6 +14,7 @@ interface MonthViewProps {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onDayClick: (date: Date) => void;
+  highlightedEventIds?: string[];
 }
 
 export const MonthView = ({
@@ -21,6 +22,7 @@ export const MonthView = ({
   events,
   onEventClick,
   onDayClick,
+  highlightedEventIds,
 }: MonthViewProps) => {
   const days = getMonthDays(currentDate);
   const weekDays = [
@@ -110,7 +112,8 @@ export const MonthView = ({
                         onEventClick(event);
                       }}
                       showTime={!event.allDay}
-                      className="text-xs"
+                        className="text-xs"
+                        highlighted={highlightedEventIds?.includes(event.id)}
                     />
                   ))}
                   {remainingCount > 0 && (

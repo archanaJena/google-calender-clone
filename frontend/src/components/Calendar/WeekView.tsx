@@ -1,5 +1,5 @@
 import { CalendarEvent } from '@/types';
-import { getWeekDays, format, isSameDay, isToday, getHours, getMinutes } from '@/lib/date';
+import { getWeekDays, format, isToday, startOfDay, endOfDay } from '@/lib/date';
 import { EventChip } from '../EventChip';
 import { cn } from '@/lib/utils';
 
@@ -8,28 +8,47 @@ interface WeekViewProps {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onTimeSlotClick?: (date: Date, hour: number) => void;
+  highlightedEventIds?: string[];
 }
 
-export const WeekView = ({ currentDate, events, onEventClick, onTimeSlotClick }: WeekViewProps) => {
+const occursOnDay = (event: CalendarEvent, day: Date) => {
+  const dayStart = startOfDay(day);
+  const dayEnd = endOfDay(day);
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  return eventStart <= dayEnd && eventEnd >= dayStart;
+};
+
+const overlapsRange = (event: CalendarEvent, rangeStart: Date, rangeEnd: Date) => {
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  return eventStart < rangeEnd && eventEnd > rangeStart;
+};
+
+export const WeekView = ({
+  currentDate,
+  events,
+  onEventClick,
+  onTimeSlotClick,
+  highlightedEventIds,
+}: WeekViewProps) => {
   const days = getWeekDays(currentDate);
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const visibleHours = hours.slice(6, 22); // 6 AM to 10 PM
 
   const getEventsForDayAndHour = (day: Date, hour: number) => {
+    const slotStart = new Date(day);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(slotStart);
+    slotEnd.setHours(slotEnd.getHours() + 1);
     return events.filter((event) => {
       if (event.allDay) return false;
-      const eventDay = new Date(event.start);
-      const eventHour = getHours(event.start);
-      return isSameDay(eventDay, day) && eventHour === hour;
+      return overlapsRange(event, slotStart, slotEnd);
     });
   };
 
   const getAllDayEvents = (day: Date) => {
-    return events.filter((event) => {
-      if (!event.allDay) return false;
-      const eventStart = new Date(event.start);
-      return isSameDay(eventStart, day);
-    });
+    return events.filter((event) => event.allDay && occursOnDay(event, day));
   };
 
   return (
@@ -89,6 +108,7 @@ export const WeekView = ({ currentDate, events, onEventClick, onTimeSlotClick }:
                       event={event}
                       onClick={() => onEventClick(event)}
                       showTime={false}
+                        highlighted={highlightedEventIds?.includes(event.id)}
                     />
                   ))}
                 </div>
@@ -119,6 +139,7 @@ export const WeekView = ({ currentDate, events, onEventClick, onTimeSlotClick }:
                         key={event.id}
                         event={event}
                         onClick={() => onEventClick(event)}
+                        highlighted={highlightedEventIds?.includes(event.id)}
                       />
                     ))}
                   </div>

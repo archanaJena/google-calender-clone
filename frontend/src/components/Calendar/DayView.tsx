@@ -1,5 +1,5 @@
 import { CalendarEvent } from '@/types';
-import { format, isSameDay, getHours, isToday } from '@/lib/date';
+import { format, startOfDay, endOfDay, isToday } from '@/lib/date';
 import { EventChip } from '../EventChip';
 import { cn } from '@/lib/utils';
 
@@ -8,27 +8,48 @@ interface DayViewProps {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onTimeSlotClick?: (hour: number) => void;
+  highlightedEventIds?: string[];
 }
 
-export const DayView = ({ currentDate, events, onEventClick, onTimeSlotClick }: DayViewProps) => {
+const occursOnDay = (event: CalendarEvent, date: Date) => {
+  const dayStart = startOfDay(date);
+  const dayEnd = endOfDay(date);
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  return eventStart <= dayEnd && eventEnd >= dayStart;
+};
+
+const overlapsRange = (event: CalendarEvent, rangeStart: Date, rangeEnd: Date) => {
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  return eventStart < rangeEnd && eventEnd > rangeStart;
+};
+
+export const DayView = ({
+  currentDate,
+  events,
+  onEventClick,
+  onTimeSlotClick,
+  highlightedEventIds,
+}: DayViewProps) => {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const visibleHours = hours.slice(6, 22); // 6 AM to 10 PM
   const isTodayDate = isToday(currentDate);
 
   const getEventsForHour = (hour: number) => {
+    const slotStart = new Date(currentDate);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(slotStart);
+    slotEnd.setHours(slotEnd.getHours() + 1);
     return events.filter((event) => {
       if (event.allDay) return false;
-      const eventDay = new Date(event.start);
-      const eventHour = getHours(event.start);
-      return isSameDay(eventDay, currentDate) && eventHour === hour;
+      return overlapsRange(event, slotStart, slotEnd);
     });
   };
 
-  const allDayEvents = events.filter((event) => {
-    if (!event.allDay) return false;
-    const eventStart = new Date(event.start);
-    return isSameDay(eventStart, currentDate);
-  });
+  const allDayEvents = events.filter(
+    (event) => event.allDay && occursOnDay(event, currentDate)
+  );
 
   return (
     <div className="flex flex-col h-full overflow-auto">
@@ -69,6 +90,7 @@ export const DayView = ({ currentDate, events, onEventClick, onTimeSlotClick }: 
                   event={event}
                   onClick={() => onEventClick(event)}
                   showTime={false}
+                  highlighted={highlightedEventIds?.includes(event.id)}
                 />
               ))}
             </div>
@@ -96,6 +118,7 @@ export const DayView = ({ currentDate, events, onEventClick, onTimeSlotClick }: 
                       key={event.id}
                       event={event}
                       onClick={() => onEventClick(event)}
+                      highlighted={highlightedEventIds?.includes(event.id)}
                     />
                   ))}
                 </div>

@@ -48,6 +48,9 @@ export const CalendarPage = () => {
   >();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<CalendarEvent[]>([]);
+  const [highlightedEventIds, setHighlightedEventIds] = useState<string[]>([]);
 
   // Load calendars
   useEffect(() => {
@@ -227,6 +230,49 @@ export const CalendarPage = () => {
     setIsEventModalOpen(true);
   };
 
+  const handleSearchEvents = async (query: string) => {
+    const trimmed = query.trim();
+    setSearchQuery(query);
+
+    if (!trimmed) {
+      setSearchResults([]);
+      setHighlightedEventIds([]);
+      return;
+    }
+
+    try {
+      const results = await eventAPI.searchEvents(trimmed);
+      setSearchResults(results);
+      setHighlightedEventIds(results.map((event) => event.id));
+
+      if (results.length > 0) {
+        const first = results[0];
+        const targetDate = new Date(first.start);
+        setCurrentDate(targetDate);
+      } else {
+        toast({
+          title: "No events found",
+          description: `No events matching "${trimmed}"`,
+        });
+      }
+    } catch (error) {
+      console.error("Error searching events:", error);
+      toast({
+        title: "Error",
+        description: "Failed to search events",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSearchResultClick = (event: CalendarEvent) => {
+    const targetDate = new Date(event.start);
+    setCurrentDate(targetDate);
+    if (view !== "day") {
+      handleViewChange("day");
+    }
+  };
+
   const handleSaveEvent = async (input: CreateEventInput) => {
     try {
       if (selectedEvent) {
@@ -329,6 +375,7 @@ export const CalendarPage = () => {
         onPrevious={handlePrevious}
         onNext={handleNext}
         onToday={handleToday}
+        onSearch={handleSearchEvents}
         onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
@@ -348,6 +395,38 @@ export const CalendarPage = () => {
             <ViewSelector currentView={view} onViewChange={handleViewChange} />
           </div>
 
+          {searchQuery.trim() && (
+            <div className="border-b border-calendar-border px-4 py-2 text-sm bg-muted/40">
+              {searchResults.length === 0 ? (
+                <div className="text-muted-foreground">
+                  No events matching "{searchQuery.trim()}"
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {searchResults.map((event) => (
+                    <button
+                      key={event.id}
+                      className="w-full text-left flex items-center justify-between px-2 py-1 rounded hover:bg-muted transition-colors"
+                      onClick={() => handleSearchResultClick(event)}
+                    >
+                      <span className="truncate text-sm">
+                        {event.title}
+                        {event.location && (
+                          <span className="text-muted-foreground ml-2 text-xs">
+                            • {event.location}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                        {format(new Date(event.start), "MMM d, yyyy")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
@@ -361,6 +440,7 @@ export const CalendarPage = () => {
                     events={events}
                     onEventClick={handleEventClick}
                     onDayClick={handleDayClick}
+                    highlightedEventIds={highlightedEventIds}
                   />
                 )}
                 {view === "week" && (
@@ -369,6 +449,7 @@ export const CalendarPage = () => {
                     events={events}
                     onEventClick={handleEventClick}
                     onTimeSlotClick={handleTimeSlotClick}
+                    highlightedEventIds={highlightedEventIds}
                   />
                 )}
                 {view === "day" && (
@@ -379,6 +460,7 @@ export const CalendarPage = () => {
                     onTimeSlotClick={(hour) =>
                       handleTimeSlotClick(currentDate, hour)
                     }
+                    highlightedEventIds={highlightedEventIds}
                   />
                 )}
                 {view === "year" && (
@@ -390,6 +472,7 @@ export const CalendarPage = () => {
                       setCurrentDate(date);
                       handleViewChange("month");
                     }}
+                    highlightedEventIds={highlightedEventIds}
                   />
                 )}
                 {view === "agenda" && (
@@ -397,6 +480,7 @@ export const CalendarPage = () => {
                     currentDate={currentDate}
                     events={events}
                     onEventClick={handleEventClick}
+                    highlightedEventIds={highlightedEventIds}
                   />
                 )}
               </>

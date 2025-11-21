@@ -22,6 +22,7 @@ interface YearViewProps {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onMonthClick: (date: Date) => void;
+  highlightedEventIds?: string[];
 }
 
 const monthNames = [
@@ -56,6 +57,7 @@ export const YearView = ({
   events,
   onEventClick,
   onMonthClick,
+  highlightedEventIds,
 }: YearViewProps) => {
   const year = currentDate.getFullYear();
   const currentMonth = new Date().getMonth();
@@ -94,10 +96,10 @@ export const YearView = ({
 
   const getEventDots = (dayEvents: CalendarEvent[]) => {
     if (dayEvents.length === 0) return [];
-    // Return all events with their colors
     return dayEvents.map((event) => ({
-      color: event.color,
+      event,
       colorClass: colorDotClasses[event.color] || colorDotClasses.blue,
+      highlighted: highlightedEventIds?.includes(event.id) ?? false,
     }));
   };
 
@@ -218,22 +220,20 @@ export const YearView = ({
                           <div className="absolute inset-0 pointer-events-none">
                             {eventDots.map((dot, dotIndex) => {
                               const position = getDotPosition(dotIndex, eventDots.length);
-                              const event = dayEvents[dotIndex];
-                              
+
                               return (
-                                <Tooltip key={dotIndex}>
+                                <Tooltip key={`${dot.event.id}-${dotIndex}`}>
                                   <TooltipTrigger asChild>
                                     <div
                                       className={cn(
                                         "w-1.5 h-1.5 rounded-full absolute pointer-events-auto cursor-pointer",
-                                        dot.colorClass
+                                        dot.colorClass,
+                                        dot.highlighted && "ring-2 ring-primary/80"
                                       )}
                                       style={position}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (event) {
-                                          onEventClick(event);
-                                        }
+                                        onEventClick(dot.event);
                                       }}
                                     />
                                   </TooltipTrigger>
@@ -246,28 +246,24 @@ export const YearView = ({
                                       <div className="text-xs font-semibold text-foreground">
                                         {format(day, "EEEE, MMMM d, yyyy")}
                                       </div>
-                                      {event && (
-                                        <div className="space-y-1">
-                                          <div
-                                            className="text-xs cursor-pointer hover:underline"
-                                            onClick={() => {
-                                              onEventClick(event);
-                                            }}
-                                          >
-                                            <span className="font-medium">{event.title}</span>
-                                            {event.location && (
-                                              <span className="text-muted-foreground ml-2">
-                                                📍 {event.location}
-                                              </span>
-                                            )}
-                                            {event.description && (
-                                              <div className="text-muted-foreground mt-1 text-xs">
-                                                {event.description}
-                                              </div>
-                                            )}
-                                          </div>
+                                      <div className="space-y-1">
+                                        <div
+                                          className="text-xs cursor-pointer hover:underline"
+                                          onClick={() => onEventClick(dot.event)}
+                                        >
+                                          <span className="font-medium">{dot.event.title}</span>
+                                          {dot.event.location && (
+                                            <span className="text-muted-foreground ml-2">
+                                              📍 {dot.event.location}
+                                            </span>
+                                          )}
+                                          {dot.event.description && (
+                                            <div className="text-muted-foreground mt-1 text-xs">
+                                              {dot.event.description}
+                                            </div>
+                                          )}
                                         </div>
-                                      )}
+                                      </div>
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>

@@ -7,6 +7,7 @@ interface EventChipProps {
   onClick?: () => void;
   className?: string;
   showTime?: boolean;
+  highlighted?: boolean;
 }
 
 const colorClasses: Record<string, { bg: string; border: string }> = {
@@ -19,7 +20,7 @@ const colorClasses: Record<string, { bg: string; border: string }> = {
   gray: { bg: 'bg-event-gray/10', border: 'border-l-event-gray' },
 };
 
-export const EventChip = ({ event, onClick, className, showTime = true }: EventChipProps) => {
+export const EventChip = ({ event, onClick, className, showTime = true, highlighted = false }: EventChipProps) => {
   const colors = colorClasses[event.color] || colorClasses.blue;
 
   return (
@@ -27,6 +28,7 @@ export const EventChip = ({ event, onClick, className, showTime = true }: EventC
       onClick={onClick}
       className={cn(
         'w-full text-left px-2 py-1 rounded border-l-4 shadow-sm hover:shadow transition-shadow',
+        highlighted && 'ring-2 ring-offset-1 ring-primary',
         colors.bg,
         colors.border,
         className

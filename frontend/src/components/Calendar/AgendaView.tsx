@@ -1,5 +1,5 @@
 import { CalendarEvent } from "@/types";
-import { format, isSameDay, startOfDay, addDays, differenceInDays } from "@/lib/date";
+import { format, startOfDay, endOfDay, addDays, differenceInDays } from "@/lib/date";
 import { EventChip } from "../EventChip";
 import { cn } from "@/lib/utils";
 
@@ -7,12 +7,22 @@ interface AgendaViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
+  highlightedEventIds?: string[];
 }
+
+const occursOnDay = (event: CalendarEvent, day: Date) => {
+  const dayStart = startOfDay(day);
+  const dayEnd = endOfDay(day);
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  return eventStart <= dayEnd && eventEnd >= dayStart;
+};
 
 export const AgendaView = ({
   currentDate,
   events,
   onEventClick,
+  highlightedEventIds,
 }: AgendaViewProps) => {
   // Show events for next 30 days
   const days = Array.from({ length: 30 }, (_, i) =>
@@ -27,10 +37,7 @@ export const AgendaView = ({
 
   const getEventsForDay = (day: Date) => {
     return events
-      .filter((event) => {
-        const eventStart = new Date(event.start);
-        return isSameDay(eventStart, day);
-      })
+      .filter((event) => occursOnDay(event, day))
       .sort((a, b) => {
         // Single-day events first, then multi-day events
         const aIsMultiDay = isMultiDayEvent(a);
@@ -92,6 +99,8 @@ export const AgendaView = ({
                           onClick={() => onEventClick(event)}
                           showTime={false}
                           className="mb-1"
+                          highlighted={highlightedEventIds?.includes(event.id)}
+                          highlighted={highlightedEventIds?.includes(event.id)}
                         />
                         {event.location && (
                           <div className="text-xs text-muted-foreground mt-1">
@@ -152,6 +161,8 @@ export const AgendaView = ({
                         onClick={() => onEventClick(event)}
                         showTime={false}
                         className="mb-1"
+                          highlighted={highlightedEventIds?.includes(event.id)}
+                          highlighted={highlightedEventIds?.includes(event.id)}
                       />
                       {event.location && (
                         <div className="text-xs text-muted-foreground mt-1">
