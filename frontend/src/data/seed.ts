@@ -26,7 +26,7 @@ export const seedCalendars: Calendar[] = [
   {
     id: 'cal-4',
     name: 'Travel',
-    color: 'yellow',
+    color: 'orange',
     visible: true,
   },
 ];
