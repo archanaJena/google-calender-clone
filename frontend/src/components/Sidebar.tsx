@@ -23,6 +23,7 @@ const colorClasses: Record<string, string> = {
   purple: 'bg-event-purple',
   cyan: 'bg-event-cyan',
   gray: 'bg-event-gray',
+  yellow: 'bg-event-yellow',
 };
 
 export const Sidebar = ({
@@ -78,7 +79,18 @@ export const Sidebar = ({
                   <Checkbox
                     checked={calendar.visible}
                     onCheckedChange={() => onCalendarToggle(calendar.id)}
-                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    className={cn(
+                      "data-[state=checked]:border-primary",
+                      calendar.name === 'Personal'
+                        ? "data-[state=checked]:bg-event-blue data-[state=checked]:border-event-blue"
+                        : calendar.name === 'Work'
+                        ? "data-[state=checked]:bg-event-red data-[state=checked]:border-event-red"
+                        : calendar.name === 'Family'
+                        ? "data-[state=checked]:bg-event-green data-[state=checked]:border-event-green"
+                        : calendar.name === 'Travel'
+                        ? "data-[state=checked]:bg-event-yellow data-[state=checked]:border-event-yellow"
+                        : "data-[state=checked]:bg-primary"
+                    )}
                   />
                   <div className="flex items-center gap-2 flex-1">
                     <div

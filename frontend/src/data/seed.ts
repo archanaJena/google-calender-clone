@@ -26,7 +26,7 @@ export const seedCalendars: Calendar[] = [
   {
     id: 'cal-4',
     name: 'Travel',
-    color: 'orange',
+    color: 'yellow',
     visible: true,
   },
 ];
@@ -112,7 +112,7 @@ export const seedEvents: CalendarEvent[] = [
     end: addDays(weekStart, 7),
     allDay: true,
     calendarId: 'cal-4',
-    color: 'orange',
+    color: 'yellow',
     location: 'Malibu Beach',
   },
   // Next week
@@ -198,10 +198,8 @@ export const seedEvents: CalendarEvent[] = [
 ];
 
 export const seedSettings: UserSettings = {
-  language: 'en',
-  region: 'US',
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
   defaultView: 'month',
   weekStartsOn: 0,
+  timezone: 'America/New_York',
   timeFormat: '12h',
 };
