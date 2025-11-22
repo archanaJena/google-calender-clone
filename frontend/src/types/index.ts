@@ -33,10 +33,15 @@ export interface Calendar {
   visible: boolean;
 }
 
+export type Language = 'en' | 'hi' | 'fr';
+export type Region = 'US' | 'IN' | 'FR' | 'GB' | 'CA' | 'AU' | 'DE' | 'JP' | 'CN' | 'BR';
+
 export interface UserSettings {
+  language: Language;
+  region: Region;
+  timezone: string;
   defaultView: ViewType;
   weekStartsOn: 0 | 1; // 0 = Sunday, 1 = Monday
-  timezone: string;
   timeFormat: '12h' | '24h';
 }
 

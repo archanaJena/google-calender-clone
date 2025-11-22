@@ -12,6 +12,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { SettingsPanel } from '@/components/Settings/SettingsPanel';
+import { useTranslation } from '@/i18n/context';
 
 interface TopBarProps {
   title: string;
@@ -32,6 +35,8 @@ export const TopBar = ({
 }: TopBarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -83,7 +88,7 @@ export const TopBar = ({
           onClick={onToday}
           className="h-9 px-3"
         >
-          Today
+          {t('common.today')}
         </Button>
       </div>
 
@@ -96,7 +101,7 @@ export const TopBar = ({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search events..."
+            placeholder={t('common.searchEvents')}
             className="pl-10 h-9"
             onChange={(e) => onSearch?.(e.target.value)}
           />
@@ -105,9 +110,11 @@ export const TopBar = ({
           variant="ghost"
           size="icon"
           className="h-9 w-9"
+          onClick={() => setIsSettingsOpen(true)}
         >
           <Settings className="h-5 w-5" />
         </Button>
+        <SettingsPanel open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -135,7 +142,7 @@ export const TopBar = ({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{t('common.logout')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

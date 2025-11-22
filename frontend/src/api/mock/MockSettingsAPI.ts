@@ -1,24 +1,35 @@
 import { SettingsAPI } from '../types';
 import { UserSettings } from '@/types';
-import { seedSettings } from '@/data/seed';
 
 const STORAGE_KEY = 'user_settings';
 const DELAY = 100;
 
 const delay = () => new Promise(resolve => setTimeout(resolve, DELAY));
 
+// Default settings
+const defaultSettings: UserSettings = {
+  language: 'en',
+  region: 'US',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+  defaultView: 'month',
+  weekStartsOn: 0,
+  timeFormat: '12h',
+};
+
 export class MockSettingsAPI implements SettingsAPI {
   private getStoredSettings(): UserSettings {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedSettings));
-        return seedSettings;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
+        return defaultSettings;
       }
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Merge with defaults to ensure all fields exist
+      return { ...defaultSettings, ...parsed };
     } catch (error) {
       console.error('Error loading settings:', error);
-      return seedSettings;
+      return defaultSettings;
     }
   }
 

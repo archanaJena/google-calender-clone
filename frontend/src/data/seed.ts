@@ -198,8 +198,10 @@ export const seedEvents: CalendarEvent[] = [
 ];
 
 export const seedSettings: UserSettings = {
+  language: 'en',
+  region: 'US',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
   defaultView: 'month',
   weekStartsOn: 0,
-  timezone: 'America/New_York',
   timeFormat: '12h',
 };

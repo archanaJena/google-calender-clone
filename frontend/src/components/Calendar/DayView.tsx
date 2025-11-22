@@ -1,7 +1,9 @@
 import { CalendarEvent } from '@/types';
-import { format, startOfDay, endOfDay, isToday } from '@/lib/date';
+import { format, startOfDay, endOfDay, isToday, formatTime, getDateLocale } from '@/lib/date';
 import { EventChip } from '../EventChip';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/context/SettingsContext';
+import { useTranslation } from '@/i18n/context';
 
 interface DayViewProps {
   currentDate: Date;
@@ -32,9 +34,13 @@ export const DayView = ({
   onTimeSlotClick,
   highlightedEventIds,
 }: DayViewProps) => {
+  const { settings } = useSettings();
+  const { t } = useTranslation();
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const visibleHours = hours.slice(6, 22); // 6 AM to 10 PM
   const isTodayDate = isToday(currentDate);
+  const locale = getDateLocale(settings?.language);
+  const timeFormat24h = settings?.timeFormat === '24h';
 
   const getEventsForHour = (hour: number) => {
     const slotStart = new Date(currentDate);
@@ -60,7 +66,7 @@ export const DayView = ({
           isTodayDate && 'bg-calendar-today'
         )}>
           <div className="text-sm text-muted-foreground mb-1">
-            {format(currentDate, 'EEEE')}
+            {format(currentDate, 'EEEE', { locale })}
           </div>
           <div
             className={cn(
@@ -71,18 +77,18 @@ export const DayView = ({
             <span className={cn(
               isTodayDate && 'bg-primary text-primary-foreground rounded-full h-16 w-16 inline-flex items-center justify-center'
             )}>
-              {format(currentDate, 'd')}
+              {format(currentDate, 'd', { locale })}
             </span>
           </div>
           <div className="text-sm text-muted-foreground mt-1">
-            {format(currentDate, 'MMMM yyyy')}
+            {format(currentDate, 'MMMM yyyy', { locale })}
           </div>
         </div>
 
         {/* All-day events */}
         {allDayEvents.length > 0 && (
           <div className="p-3 border-t border-calendar-border">
-            <div className="text-xs text-muted-foreground mb-2">All day</div>
+            <div className="text-xs text-muted-foreground mb-2">{t('calendar.allDay')}</div>
             <div className="space-y-1">
               {allDayEvents.map((event) => (
                 <EventChip
@@ -109,7 +115,7 @@ export const DayView = ({
               onClick={() => onTimeSlotClick?.(hour)}
             >
               <div className="w-20 p-2 text-xs text-muted-foreground text-right border-r border-calendar-border flex-shrink-0">
-                {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+                {formatTime(new Date(new Date().setHours(hour, 0, 0, 0)), timeFormat24h, settings?.language, settings?.timezone)}
               </div>
               <div className="flex-1 p-2">
                 <div className="space-y-1">

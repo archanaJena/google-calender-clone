@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider, useSettings } from "@/context/SettingsContext";
+import { I18nProvider } from "@/i18n/context";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import { CalendarPage } from "./pages/CalendarPage";
@@ -14,9 +16,13 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+// Inner app component that has access to settings
+const AppContent = () => {
+  const { settings } = useSettings();
+  const language = settings?.language || 'en';
+
+  return (
+    <I18nProvider language={language}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -32,6 +38,16 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+    </I18nProvider>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <SettingsProvider>
+        <AppContent />
+      </SettingsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -28,11 +28,16 @@ import {
   setHours,
 } from "@/lib/date";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/context/SettingsContext";
+import { useTranslation } from "@/i18n/context";
+import { formatWithLocale } from "@/lib/date";
 
 export const CalendarPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { settings } = useSettings();
+  const { t, language } = useTranslation();
 
   const view = (searchParams.get("view") as ViewType) || "month";
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -352,17 +357,18 @@ export const CalendarPage = () => {
   };
 
   const getTitle = () => {
+    if (!settings) return "";
     switch (view) {
       case "year":
-        return format(currentDate, "yyyy");
+        return formatWithLocale(currentDate, "yyyy", language);
       case "month":
-        return format(currentDate, "MMMM yyyy");
+        return formatWithLocale(currentDate, "MMMM yyyy", language);
       case "week":
-        return format(currentDate, "MMMM yyyy");
+        return formatWithLocale(currentDate, "MMMM yyyy", language);
       case "day":
-        return format(currentDate, "MMMM d, yyyy");
+        return formatWithLocale(currentDate, "MMMM d, yyyy", language);
       case "agenda":
-        return "Agenda";
+        return t('calendar.agenda');
       default:
         return "";
     }

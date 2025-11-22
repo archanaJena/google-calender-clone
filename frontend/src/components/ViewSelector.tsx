@@ -1,21 +1,24 @@
 import { Button } from '@/components/ui/button';
 import { ViewType } from '@/types';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/i18n/context';
 
 interface ViewSelectorProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
 }
 
-const views: { value: ViewType; label: string }[] = [
-  { value: 'day', label: 'Day' },
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-  { value: 'year', label: 'Year' },
-  { value: 'agenda', label: 'Agenda' },
-];
-
 export const ViewSelector = ({ currentView, onViewChange }: ViewSelectorProps) => {
+  const { t } = useTranslation();
+  
+  const views: { value: ViewType; labelKey: string }[] = [
+    { value: 'day', labelKey: 'calendar.day' },
+    { value: 'week', labelKey: 'calendar.week' },
+    { value: 'month', labelKey: 'calendar.month' },
+    { value: 'year', labelKey: 'calendar.year' },
+    { value: 'agenda', labelKey: 'calendar.agenda' },
+  ];
+
   return (
     <div className="flex items-center border border-border rounded-md overflow-hidden">
       {views.map((view) => (
@@ -28,7 +31,7 @@ export const ViewSelector = ({ currentView, onViewChange }: ViewSelectorProps) =
             currentView === view.value && 'bg-secondary text-secondary-foreground'
           )}
         >
-          {view.label}
+          {t(view.labelKey)}
         </Button>
       ))}
     </div>
