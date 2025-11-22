@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 // Common timezones organized by region
 const timezones = [
@@ -59,6 +60,10 @@ export const SettingsSectionTimezone = () => {
     await updateSettings({ timezone });
   };
 
+  const handleTimeFormatChange = async (use24h: boolean) => {
+    await updateSettings({ timeFormat: use24h ? '24h' : '12h' });
+  };
+
   // Get current time in selected timezone
   const getCurrentTimeInTimezone = (tz: string) => {
     try {
@@ -66,7 +71,7 @@ export const SettingsSectionTimezone = () => {
         timeZone: tz,
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
+        hour12: settings?.timeFormat !== '24h',
       }).format(new Date());
     } catch {
       return '';
@@ -101,6 +106,27 @@ export const SettingsSectionTimezone = () => {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="time-format-switch">
+          {settings.language === 'en' && 'Use 24-hour format'}
+          {settings.language === 'hi' && '24 घंटे प्रारूप का उपयोग करें'}
+          {settings.language === 'fr' && 'Utiliser le format 24 heures'}
+        </Label>
+        <div className="flex items-center gap-3">
+          <Switch
+            id="time-format-switch"
+            checked={settings.timeFormat === '24h'}
+            onCheckedChange={handleTimeFormatChange}
+          />
+          <span className="text-sm text-muted-foreground">
+            {settings.timeFormat === '24h' 
+              ? (settings.language === 'en' ? '24-hour format (14:30)' : settings.language === 'hi' ? '24 घंटे प्रारूप (14:30)' : 'Format 24 heures (14:30)')
+              : (settings.language === 'en' ? '12-hour format (2:30 PM)' : settings.language === 'hi' ? '12 घंटे प्रारूप (2:30 PM)' : 'Format 12 heures (14:30)')
+            }
+          </span>
+        </div>
       </div>
 
       <div className="pt-4 border-t">

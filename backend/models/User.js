@@ -44,6 +44,17 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  settings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {
+      language: 'en',
+      region: 'US',
+      timezone: 'America/New_York',
+      defaultView: 'month',
+      weekStartsOn: 0,
+      timeFormat: '12h'
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

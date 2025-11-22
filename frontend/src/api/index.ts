@@ -1,7 +1,7 @@
 import { RestEventAPI } from './EventAPI';
 import { MockCalendarAPI } from './mock/MockCalendarAPI';
-import { MockSettingsAPI } from './mock/MockSettingsAPI';
+import { RestSettingsAPI } from './SettingsAPI';
 
 export const eventAPI = new RestEventAPI();
 export const calendarAPI = new MockCalendarAPI();
-export const settingsAPI = new MockSettingsAPI();
+export const settingsAPI = new RestSettingsAPI();

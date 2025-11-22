@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserSettings, Language, Region } from '@/types';
 import { settingsAPI } from '@/api';
+import { useAuth } from './AuthContext';
 
 interface SettingsContextType {
   settings: UserSettings | null;
@@ -38,21 +39,30 @@ const getWeekStartForRegion = (region: Region): 0 | 1 => {
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
-  // Load settings on mount
+  // Load settings when authenticated
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish checking
+    
     const loadSettings = async () => {
       try {
-        const loaded = await settingsAPI.getSettings();
-        const merged = { ...defaultSettings, ...loaded };
-        
-        // Ensure weekStartsOn matches region if not explicitly set
-        if (!loaded.weekStartsOn && loaded.region) {
-          merged.weekStartsOn = getWeekStartForRegion(loaded.region);
+        if (isAuthenticated) {
+          const loaded = await settingsAPI.getSettings();
+          const merged = { ...defaultSettings, ...loaded };
+          
+          // Ensure weekStartsOn matches region if not explicitly set
+          if (!loaded.weekStartsOn && loaded.region) {
+            merged.weekStartsOn = getWeekStartForRegion(loaded.region);
+          }
+          
+          setSettings(merged);
+          applyLanguageFont(merged.language);
+        } else {
+          // Not authenticated, use defaults
+          setSettings(defaultSettings);
+          applyLanguageFont(defaultSettings.language);
         }
-        
-        setSettings(merged);
-        applyLanguageFont(merged.language);
       } catch (error) {
         console.error('Error loading settings:', error);
         setSettings(defaultSettings);
@@ -62,7 +72,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     loadSettings();
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
   const updateSettings = async (updates: Partial<UserSettings>) => {
     if (!settings) return;
@@ -72,6 +82,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     // Auto-update weekStartsOn when region changes
     if (updates.region && updates.region !== settings.region) {
       updated.weekStartsOn = getWeekStartForRegion(updates.region);
+      updates.weekStartsOn = updated.weekStartsOn;
     }
     
     // Apply language font immediately
@@ -80,8 +91,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await settingsAPI.updateSettings(updated);
-      setSettings(updated);
+      // Send only the updates to the API, not the full settings object
+      const savedSettings = await settingsAPI.updateSettings(updates);
+      setSettings(savedSettings);
     } catch (error) {
       console.error('Error updating settings:', error);
       throw error;

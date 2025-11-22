@@ -1,7 +1,8 @@
 import { CalendarEvent } from '@/types';
-import { getWeekDays, format, isToday, startOfDay, endOfDay } from '@/lib/date';
+import { getWeekDays, format, isToday, startOfDay, endOfDay, formatTime, getDateLocale } from '@/lib/date';
 import { EventChip } from '../EventChip';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/context/SettingsContext';
 
 interface WeekViewProps {
   currentDate: Date;
@@ -32,7 +33,11 @@ export const WeekView = ({
   onTimeSlotClick,
   highlightedEventIds,
 }: WeekViewProps) => {
-  const days = getWeekDays(currentDate);
+  const { settings } = useSettings();
+  const weekStartsOn = settings?.weekStartsOn ?? 0;
+  const timeFormat24h = settings?.timeFormat === '24h';
+  const locale = getDateLocale(settings?.language);
+  const days = getWeekDays(currentDate, weekStartsOn);
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const visibleHours = hours.slice(6, 22); // 6 AM to 10 PM
 
@@ -70,7 +75,7 @@ export const WeekView = ({
                 )}
               >
                 <div className="text-xs text-muted-foreground">
-                  {format(day, 'EEE')}
+                  {format(day, 'EEE', { locale })}
                 </div>
                 <div
                   className={cn(
@@ -81,7 +86,7 @@ export const WeekView = ({
                   <span className={cn(
                     isTodayDate && 'bg-primary text-primary-foreground rounded-full h-10 w-10 inline-flex items-center justify-center'
                   )}>
-                    {format(day, 'd')}
+                    {format(day, 'd', { locale })}
                   </span>
                 </div>
               </div>
@@ -92,7 +97,7 @@ export const WeekView = ({
         {/* All-day events */}
         <div className="grid grid-cols-8 border-t border-calendar-border">
           <div className="p-2 text-xs text-muted-foreground border-r border-calendar-border">
-            All day
+            {settings?.language === 'en' ? 'All day' : settings?.language === 'hi' ? 'पूरा दिन' : 'Toute la journée'}
           </div>
           {days.map((day) => {
             const allDayEvents = getAllDayEvents(day);
@@ -123,7 +128,7 @@ export const WeekView = ({
         {visibleHours.map((hour) => (
           <div key={hour} className="grid grid-cols-8 border-b border-calendar-border h-16">
             <div className="p-2 text-xs text-muted-foreground text-right border-r border-calendar-border">
-              {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+              {formatTime(new Date(new Date().setHours(hour, 0, 0, 0)), timeFormat24h, settings?.language, settings?.timezone)}
             </div>
             {days.map((day) => {
               const hourEvents = getEventsForDayAndHour(day, hour);

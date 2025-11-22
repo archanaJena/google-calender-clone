@@ -1,6 +1,7 @@
 import { CalendarEvent } from '@/types';
 import { formatTime } from '@/lib/date';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/context/SettingsContext';
 
 interface EventChipProps {
   event: CalendarEvent;
@@ -21,7 +22,9 @@ const colorClasses: Record<string, { bg: string; border: string }> = {
 };
 
 export const EventChip = ({ event, onClick, className, showTime = true, highlighted = false }: EventChipProps) => {
+  const { settings } = useSettings();
   const colors = colorClasses[event.color] || colorClasses.blue;
+  const timeFormat24h = settings?.timeFormat === '24h';
 
   return (
     <button
@@ -36,7 +39,7 @@ export const EventChip = ({ event, onClick, className, showTime = true, highligh
     >
       <div className="text-xs font-medium text-foreground truncate">
         {showTime && !event.allDay && (
-          <span className="mr-1">{formatTime(event.start)}</span>
+          <span className="mr-1">{formatTime(event.start, timeFormat24h, settings?.language, settings?.timezone)}</span>
         )}
         {event.title}
       </div>
