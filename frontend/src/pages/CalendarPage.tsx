@@ -91,7 +91,7 @@ export const CalendarPage = () => {
             case "day":
               return startOfDay(currentDate);
             case "agenda":
-              return addDays(startOfDay(currentDate), 1);
+              return startOfDay(currentDate);
             default:
               return currentDate;
           }
@@ -108,7 +108,7 @@ export const CalendarPage = () => {
             case "day":
               return endOfDay(currentDate);
             case "agenda":
-              return addDays(addDays(startOfDay(currentDate), 1), 30);
+              return addDays(startOfDay(currentDate), 30);
             default:
               return addDays(currentDate, 30);
           }
@@ -116,14 +116,19 @@ export const CalendarPage = () => {
 
         const data = await eventAPI.getEvents(start, end);
 
-        // Filter by visible calendars
-        const visibleCalendarIds = calendars
-          .filter((cal) => cal.visible)
-          .map((cal) => cal.id);
+        // Filter by visible calendars (if calendars are loaded)
+        // If calendars array is empty, show all events to prevent blank agenda
+        let filteredData = data;
+        if (calendars.length > 0) {
+          const visibleCalendarIds = calendars
+            .filter((cal) => cal.visible)
+            .map((cal) => cal.id);
+          filteredData = data.filter((event) => 
+            visibleCalendarIds.includes(event.calendarId)
+          );
+        }
 
-        setEvents(
-          data.filter((event) => visibleCalendarIds.includes(event.calendarId))
-        );
+        setEvents(filteredData);
       } catch (error) {
         console.error("Error loading events:", error);
         toast({
@@ -131,14 +136,16 @@ export const CalendarPage = () => {
           description: "Failed to load events",
           variant: "destructive",
         });
+        // Set empty array on error to prevent blank screen issues
+        setEvents([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (calendars.length > 0) {
-      loadEvents();
-    }
+    // Always load events, even if calendars array is empty initially
+    // This ensures agenda view works properly and doesn't go blank
+    loadEvents();
   }, [currentDate, view, calendars, toast]);
 
   const handleViewChange = (newView: ViewType) => {
@@ -196,11 +203,24 @@ export const CalendarPage = () => {
 
     try {
       await calendarAPI.updateCalendar(id, { visible: !calendar.visible });
-      setCalendars(
-        calendars.map((cal) =>
-          cal.id === id ? { ...cal, visible: !cal.visible } : cal
-        )
+      const updatedCalendars = calendars.map((cal) =>
+        cal.id === id ? { ...cal, visible: !cal.visible } : cal
       );
+      setCalendars(updatedCalendars);
+      
+      // Update search results if there's an active search
+      if (searchQuery.trim()) {
+        const visibleCalendarIds = updatedCalendars
+          .filter((cal) => cal.visible)
+          .map((cal) => cal.id);
+        
+        // Re-filter existing search results
+        const filteredResults = searchResults.filter((event) =>
+          visibleCalendarIds.includes(event.calendarId)
+        );
+        setSearchResults(filteredResults);
+        setHighlightedEventIds(filteredResults.map((event) => event.id));
+      }
     } catch (error) {
       console.error("Error toggling calendar:", error);
       toast({
@@ -247,19 +267,29 @@ export const CalendarPage = () => {
 
     try {
       const results = await eventAPI.searchEvents(trimmed);
-      setSearchResults(results);
-      setHighlightedEventIds(results.map((event) => event.id));
-
-      if (results.length > 0) {
-        const first = results[0];
-        const targetDate = new Date(first.start);
-        setCurrentDate(targetDate);
-      } else {
-        toast({
-          title: "No events found",
-          description: `No events matching "${trimmed}"`,
-        });
-      }
+      
+      // Filter by visible calendars
+      const visibleCalendarIds = calendars
+        .filter((cal) => cal.visible)
+        .map((cal) => cal.id);
+      
+      // Get current date/time for filtering past events
+      const now = new Date();
+      const today = startOfDay(now);
+      
+      // Filter by visible calendars and only show upcoming events (start date >= today)
+      const filteredResults = results.filter((event) => {
+        const eventStart = new Date(event.start);
+        const eventStartDay = startOfDay(eventStart);
+        return (
+          visibleCalendarIds.includes(event.calendarId) &&
+          eventStartDay >= today
+        );
+      });
+      
+      setSearchResults(filteredResults);
+      // Highlight matching events in the agenda without changing structure
+      setHighlightedEventIds(filteredResults.map((event) => event.id));
     } catch (error) {
       console.error("Error searching events:", error);
       toast({
@@ -401,38 +431,6 @@ export const CalendarPage = () => {
             <ViewSelector currentView={view} onViewChange={handleViewChange} />
           </div>
 
-          {searchQuery.trim() && (
-            <div className="border-b border-calendar-border px-4 py-2 text-sm bg-muted/40">
-              {searchResults.length === 0 ? (
-                <div className="text-muted-foreground">
-                  No events matching "{searchQuery.trim()}"
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {searchResults.map((event) => (
-                    <button
-                      key={event.id}
-                      className="w-full text-left flex items-center justify-between px-2 py-1 rounded hover:bg-muted transition-colors"
-                      onClick={() => handleSearchResultClick(event)}
-                    >
-                      <span className="truncate text-sm">
-                        {event.title}
-                        {event.location && (
-                          <span className="text-muted-foreground ml-2 text-xs">
-                            • {event.location}
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                        {format(new Date(event.start), "MMM d, yyyy")}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
@@ -487,6 +485,7 @@ export const CalendarPage = () => {
                     events={events}
                     onEventClick={handleEventClick}
                     highlightedEventIds={highlightedEventIds}
+                    hasSearchResults={searchQuery.trim().length > 0 && searchResults.length > 0}
                   />
                 )}
               </>

@@ -1,5 +1,5 @@
 import { CalendarEvent } from "@/types";
-import { format, isSameDay, startOfDay, addDays, differenceInDays } from "@/lib/date";
+import { format, isSameDay, startOfDay, endOfDay, addDays, differenceInDays } from "@/lib/date";
 import { EventChip } from "../EventChip";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,7 @@ interface AgendaViewProps {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   highlightedEventIds?: string[];
+  hasSearchResults?: boolean;
 }
 
 export const AgendaView = ({
@@ -15,6 +16,7 @@ export const AgendaView = ({
   events,
   onEventClick,
   highlightedEventIds,
+  hasSearchResults = false,
 }: AgendaViewProps) => {
   // Show events for next 30 days
   const days = Array.from({ length: 30 }, (_, i) =>
@@ -28,10 +30,24 @@ export const AgendaView = ({
   };
 
   const getEventsForDay = (day: Date) => {
+    const dayStart = startOfDay(day);
+    const dayEnd = endOfDay(day);
+    
     return events
       .filter((event) => {
         const eventStart = new Date(event.start);
-        return isSameDay(eventStart, day);
+        const eventEnd = new Date(event.end);
+        
+        // Check if event occurs on this day
+        // Event occurs on this day if:
+        // 1. Event starts on this day, OR
+        // 2. Event ends on this day, OR
+        // 3. Event spans across this day (starts before and ends after)
+        return (
+          (eventStart >= dayStart && eventStart <= dayEnd) ||
+          (eventEnd >= dayStart && eventEnd <= dayEnd) ||
+          (eventStart < dayStart && eventEnd > dayEnd)
+        );
       })
       .sort((a, b) => {
         // Single-day events first, then multi-day events
@@ -181,7 +197,7 @@ export const AgendaView = ({
           return result;
         })}
 
-        {events.length === 0 && (
+        {events.length === 0 && !hasSearchResults && (
           <div className="text-center py-12 text-muted-foreground">
             No events scheduled
           </div>
